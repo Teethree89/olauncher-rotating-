@@ -176,6 +176,7 @@ fun Long.hasBeenHours(hours: Int): Boolean =
 fun Long.hasBeenMinutes(minutes: Int): Boolean =
     ((System.currentTimeMillis() - this) / Constants.ONE_MINUTE_IN_MILLIS) >= minutes
 
-fun Int.dpToPx(): Int {
-    return (this * Resources.getSystem().displayMetrics.density).toInt()
-}
+// Cached once; density is fixed for the lifetime of the process on a given device
+private val displayDensity: Float by lazy { Resources.getSystem().displayMetrics.density }
+
+fun Int.dpToPx(): Int = (this * displayDensity).toInt()
