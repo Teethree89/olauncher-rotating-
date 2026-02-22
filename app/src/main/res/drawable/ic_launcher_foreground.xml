@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rotation-O icon: a bold circular arc (~300°) with a clockwise arrowhead.
+    Reads as the letter O while clearly communicating rotation.
+
+    Viewport: 108×108dp (adaptive icon standard)
+    Safe zone: 72×72dp centred (from 18,18 to 90,90)
+    Centre: (54,54)  |  Ring radius: 26dp  |  Stroke: 9dp
+
+    Arc geometry
+      Start  → 330° → (76.5, 41) ≈ (77, 41)  [11 o'clock, upper-right]
+      End    → 270° → (54,   28)              [12 o'clock, top]
+      Direction: clockwise (sweep-flag=1), 300° arc (large-arc-flag=1)
+      Gap: 60° in the upper-right area
+
+    Arrowhead at 12 o'clock, pointing right (clockwise tangent at 270°)
+      Tip:  (66, 28)
+      Base: (54, 20) and (54, 36)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Rotation arc: 300° clockwise from upper-right to top -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M77,41 A26,26,0,1,1,54,28"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9"
+        android:strokeLineCap="round" />
+
+    <!-- Arrowhead pointing right at the top of the arc -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,28 L54,20 L54,36 Z" />
+
+</vector>
