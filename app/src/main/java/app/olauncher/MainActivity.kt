@@ -1,10 +1,8 @@
 package app.olauncher
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -101,7 +99,6 @@ class MainActivity : AppCompatActivity() {
         initClickListeners()
         initObservers(viewModel)
         viewModel.getAppList()
-        setupOrientation()
 
         window.addFlags(FLAG_LAYOUT_NO_LIMITS)
     }
@@ -287,14 +284,6 @@ class MainActivity : AppCompatActivity() {
                 ) viewModel.showDialog.postValue(Constants.Dialog.SHARE)
             }
         }
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    private fun setupOrientation() {
-        if (isTablet(this) || Build.VERSION.SDK_INT == Build.VERSION_CODES.O)
-            return
-        // In Android 8.0, windowIsTranslucent cannot be used with screenOrientation=portrait
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
 
     private fun backToHomeScreen() {
