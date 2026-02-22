@@ -51,9 +51,19 @@ import java.util.Locale
 
 class HomeFragment : Fragment(), View.OnClickListener, View.OnLongClickListener {
 
+    // Cached once per fragment instance — not per onResume call
+    private val dateFormat = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+
     private lateinit var prefs: Prefs
     private lateinit var viewModel: MainViewModel
     private lateinit var deviceManager: DevicePolicyManager
+    private lateinit var launcherApps: LauncherApps
+    private lateinit var batteryManager: BatteryManager
+
+    // Track last params used to skip redundant LayoutParams creation on every resume
+    private var lastScreenTimeOrientation = -1
+    private var lastScreenTimeDateVis = -1
+    private var lastScreenTimeAlignment = Int.MIN_VALUE
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -71,6 +81,9 @@ class HomeFragment : Fragment(), View.OnClickListener, View.OnLongClickListener 
         } ?: throw Exception("Invalid Activity")
 
         deviceManager = context?.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        launcherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        batteryManager = requireContext().getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+        binding.tvScreenTime.setPadding(10.dpToPx())
 
         initObservers()
         setHomeAlignment(prefs.homeAlignment)
@@ -242,13 +255,10 @@ class HomeFragment : Fragment(), View.OnClickListener, View.OnLongClickListener 
         binding.clock.isVisible = Constants.DateTime.isTimeVisible(prefs.dateTimeVisibility)
         binding.date.isVisible = Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)
 
-//        var dateText = SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date())
-        val dateFormat = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
         var dateText = dateFormat.format(Date())
 
         if (!prefs.showStatusBar) {
-            val battery = (requireContext().getSystemService(Context.BATTERY_SERVICE) as BatteryManager)
-                .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            val battery = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
             if (battery > 0)
                 dateText = getString(R.string.day_battery, dateText, battery)
         }
@@ -262,12 +272,25 @@ class HomeFragment : Fragment(), View.OnClickListener, View.OnLongClickListener 
         viewModel.getTodaysScreenTime()
         binding.tvScreenTime.visibility = View.VISIBLE
 
-        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        // Skip layout pass if nothing that affects positioning has changed
+        val currentOrientation = resources.configuration.orientation
+        val currentDateTimeVis = prefs.dateTimeVisibility
+        val currentAlignment = prefs.homeAlignment
+        if (currentOrientation == lastScreenTimeOrientation
+            && currentDateTimeVis == lastScreenTimeDateVis
+            && currentAlignment == lastScreenTimeAlignment
+        ) return
+
+        lastScreenTimeOrientation = currentOrientation
+        lastScreenTimeDateVis = currentDateTimeVis
+        lastScreenTimeAlignment = currentAlignment
+
+        val isLandscape = currentOrientation == Configuration.ORIENTATION_LANDSCAPE
         val horizontalMargin = if (isLandscape) 64.dpToPx() else 10.dpToPx()
         val marginTop = if (isLandscape) {
-            if (prefs.dateTimeVisibility == Constants.DateTime.DATE_ONLY) 36.dpToPx() else 56.dpToPx()
+            if (currentDateTimeVis == Constants.DateTime.DATE_ONLY) 36.dpToPx() else 56.dpToPx()
         } else {
-            if (prefs.dateTimeVisibility == Constants.DateTime.DATE_ONLY) 45.dpToPx() else 72.dpToPx()
+            if (currentDateTimeVis == Constants.DateTime.DATE_ONLY) 45.dpToPx() else 72.dpToPx()
         }
         val params = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -276,10 +299,9 @@ class HomeFragment : Fragment(), View.OnClickListener, View.OnLongClickListener 
             topMargin = marginTop
             marginStart = horizontalMargin
             marginEnd = horizontalMargin
-            gravity = if (prefs.homeAlignment == Gravity.END) Gravity.START else Gravity.END
+            gravity = if (currentAlignment == Gravity.END) Gravity.START else Gravity.END
         }
         binding.tvScreenTime.layoutParams = params
-        binding.tvScreenTime.setPadding(10.dpToPx())
     }
 
     private fun populateHomeScreen(appCountUpdated: Boolean) {
@@ -354,8 +376,6 @@ class HomeFragment : Fragment(), View.OnClickListener, View.OnLongClickListener 
         
         // If it's a shortcut, verify it still exists
         if (isShortcut) {
-            val launcherApps = requireContext().getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
-            
             // Query for the specific shortcut
             val query = LauncherApps.ShortcutQuery().apply {
                 setPackage(packageName)

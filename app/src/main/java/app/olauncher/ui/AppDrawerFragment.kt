@@ -2,6 +2,8 @@ package app.olauncher.ui
 
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -39,6 +41,9 @@ class AppDrawerFragment : Fragment() {
 
     private var flag = Constants.FLAG_LAUNCH_APP
     private var canRename = false
+
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var searchRunnable: Runnable? = null
 
     private val viewModel: MainViewModel by activityViewModels()
     private var _binding: FragmentAppDrawerBinding? = null
@@ -94,16 +99,19 @@ class AppDrawerFragment : Fragment() {
             }
 
             override fun onQueryTextChange(newText: String): Boolean {
-                try {
-                    adapter.filter.filter(newText)
-                    binding.appDrawerTip.visibility = View.GONE
-                    binding.appRename.visibility =
-                        if (canRename && newText.isNotBlank()) View.VISIBLE else View.GONE
-                    return true
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                searchRunnable?.let { searchHandler.removeCallbacks(it) }
+                searchRunnable = Runnable {
+                    try {
+                        adapter.filter.filter(newText)
+                        binding.appDrawerTip.visibility = View.GONE
+                        binding.appRename.visibility =
+                            if (canRename && newText.isNotBlank()) View.VISIBLE else View.GONE
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
-                return false
+                searchHandler.postDelayed(searchRunnable!!, 150)
+                return true
             }
         })
     }
@@ -305,6 +313,8 @@ class AppDrawerFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        searchRunnable?.let { searchHandler.removeCallbacks(it) }
+        searchRunnable = null
         super.onDestroyView()
         _binding = null
     }

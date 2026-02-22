@@ -34,6 +34,10 @@ class AppDrawerAdapter(
 ) : ListAdapter<AppModel, AppDrawerAdapter.ViewHolder>(DIFF_CALLBACK), Filterable {
 
     companion object {
+        // Pre-compiled once; avoids Regex construction on every filter call
+        private val DIACRITICS_REGEX = Regex("\\p{InCombiningDiacriticalMarks}+")
+        private val SEPARATORS_REGEX = Regex("[-_+,. ]")
+
         val DIFF_CALLBACK = object : DiffUtil.ItemCallback<AppModel>() {
             override fun areItemsTheSame(oldItem: AppModel, newItem: AppModel): Boolean = when {
                 oldItem is AppModel.App && newItem is AppModel.App ->
@@ -134,8 +138,8 @@ class AppDrawerAdapter(
     private fun appLabelMatches(appLabel: String, charSearch: CharSequence): Boolean {
         return (appLabel.contains(charSearch.trim(), true) or
                 Normalizer.normalize(appLabel, Normalizer.Form.NFD)
-                    .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
-                    .replace(Regex("[-_+,. ]"), "")
+                    .replace(DIACRITICS_REGEX, "")
+                    .replace(SEPARATORS_REGEX, "")
                     .contains(charSearch, true))
     }
 
